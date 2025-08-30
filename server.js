@@ -31,6 +31,10 @@ mongoose
     console.error("❌ Mongo connect error:", err);
     process.exit(1);
   });
+// -------- Test Route --------
+app.get("/", (req, res) => {
+  res.send("🚀 Backend is running successfully!");
+});
 
 // ---------- Schemas & Models ----------
 const userSchema = new mongoose.Schema(
