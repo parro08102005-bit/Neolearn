@@ -159,7 +159,7 @@ app.post("/api/google-login", async (req, res) => {
   }
 });
 // ---------- Static (Vite build in /public) ----------
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "dist")));
 
 // SPA fallback
 app.get("*", (_req, res) => {
