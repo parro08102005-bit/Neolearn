@@ -35,9 +35,9 @@ mongoose
   });
 
 // ---------- Test Route ----------
-app.get("/", (req, res) => {
-  res.send("🚀 Backend is running successfully!");
-});
+//app.get("/", (req, res) => {
+  //res.send("🚀 Backend is running successfully!");
+//});
 
 // ---------- Schemas & Models ----------
 const userSchema = new mongoose.Schema(
