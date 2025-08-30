@@ -99,6 +99,7 @@ app.post("/api/login", async (req, res) => {
   try {
     const identifier = (req.body.identifier || req.body.emailOrPhone || "").trim();
     const { password } = req.body || {};
+    console.log("Login request received => identifier:", identifier, "password:", password);
 
     if (!identifier || !password) {
       return res.status(400).json({ error: "Email/Phone aur Password required hai" });
@@ -108,10 +109,12 @@ app.post("/api/login", async (req, res) => {
     const user = await User.findOne({
       $or: [{ email: idLower }, { phone: identifier }]
     });
-
+    console.log("User found in DB =>", user);
     if (!user) {
       return res.status(400).json({ error: "Invalid Email/Phone or Password" });
     }
+    console.log("Entered Password:", password);
+    console.log("Stored Hash:", user.passwordHash);
 
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
