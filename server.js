@@ -31,7 +31,11 @@ mongoose
     console.error("❌ Mongo connect error:", err);
     process.exit(1);
   });
+<<<<<<< HEAD
 // -------- Test Route --------
+=======
+  // -------- Test Route --------
+>>>>>>> 9b24bb9 (added frontend dist with server.js update)
 app.get("/", (req, res) => {
   res.send("🚀 Backend is running successfully!");
 });
