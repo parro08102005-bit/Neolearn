@@ -13,8 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 // --- Google OAuth client init ---
-const credsPath = path.join(__dirname, "credentials", "client_secret.json");
-const creds = JSON.parse(fs.readFileSync(credsPath, "utf-8"));
+const creds = JSON.parse(process.env.GOOGLE_CLIENT_SECRET);
 const googleClient = new OAuth2Client(creds.web.client_id);
 
 
