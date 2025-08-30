@@ -1,4 +1,4 @@
-// server.js  — CommonJS (Node)
+// server.js -- CommonJS (Node)
 require("dotenv").config();
 const path = require("path");
 const express = require("express");
@@ -7,15 +7,16 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const fs = require("fs");
 const { OAuth2Client } = require("google-auth-library");
+
 const app = express();
 
 // ---------- Middleware ----------
 app.use(cors());
 app.use(express.json());
-// --- Google OAuth client init ---
+
+// ---------- Google OAuth client init ----------
 const creds = JSON.parse(process.env.GOOGLE_CLIENT_SECRET);
 const googleClient = new OAuth2Client(creds.web.client_id);
-
 
 // ---------- MongoDB ----------
 const uri = process.env.MONGODB_URI;
@@ -23,7 +24,8 @@ if (!uri) {
   console.error("❌ MONGODB_URI missing.");
   process.exit(1);
 }
-console.log("✅ MONGODB_URI loaded")
+
+console.log("✅ MONGODB_URI loaded");
 mongoose
   .connect(uri)
   .then(() => console.log("✅ MongoDB connected"))
@@ -31,11 +33,8 @@ mongoose
     console.error("❌ Mongo connect error:", err);
     process.exit(1);
   });
-<<<<<<< HEAD
-// -------- Test Route --------
-=======
-  // -------- Test Route --------
->>>>>>> 9b24bb9 (added frontend dist with server.js update)
+
+// ---------- Test Route ----------
 app.get("/", (req, res) => {
   res.send("🚀 Backend is running successfully!");
 });
@@ -72,7 +71,7 @@ app.post("/api/register", async (req, res) => {
       $or: [
         ...(emailNorm ? [{ email: emailNorm }] : []),
         ...(phoneNorm ? [{ phone: phoneNorm }] : [])
-      ]
+      ],
     });
 
     if (existing) {
@@ -98,7 +97,6 @@ app.post("/api/register", async (req, res) => {
 // Login (email OR phone + password)
 app.post("/api/login", async (req, res) => {
   try {
-    // front-end se "identifier" ya "emailOrPhone" a सकता है — दोनों सपोर्ट:
     const identifier = (req.body.identifier || req.body.emailOrPhone || "").trim();
     const { password } = req.body || {};
 
@@ -131,11 +129,12 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Small health check (optional)
+// ---------- Small health check (optional) ----------
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
-// --- Google Login (ID token verify) ---
+
+// ---------- Google Login (ID token verify) ----------
 app.post("/api/google-login", async (req, res) => {
   try {
     const { token } = req.body || {};
@@ -159,17 +158,18 @@ app.post("/api/google-login", async (req, res) => {
     return res.json({ success: true, user: userInfo });
   } catch (e) {
     console.error("Google login error:", e);
-    return res.status(401).json({ success: false, message: "Invalid Google token" });
-  }
+    return res.status(401).json({ success: false, message: "Invalid Google token" });
+  }
 });
-// ---------- Static (Vite build in /public) ----------
+
+// ---------- Static (Vite build in /dist) ----------
 app.use(express.static(path.join(__dirname, "dist")));
 
 // SPA fallback
-app.get("*", (_req, res) => {
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 // ---------- Start ----------
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("🚀 Server listening on", PORT));
+app.listen(PORT, () => console.log('🚀 Server listening on, {PORT}'));
