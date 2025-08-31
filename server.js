@@ -14,8 +14,9 @@ app.use(cors());
 app.use(express.json());
 
 // ---------- Google OAuth client init ----------
-const creds = JSON.parse(process.env.GOOGLE_CLIENT_SECRET);
-const googleClient = new OAuth2Client(creds.web.client_id);
+// ---------- Google OAuth client init ----------
+const { OAuth2Client } = require("google-auth-library");
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ---------- MongoDB ----------
 const uri = process.env.MONGODB_URI;
