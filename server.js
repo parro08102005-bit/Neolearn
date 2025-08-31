@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 // ---------- Google OAuth client init ----------
-const creds = require("./client_secret.json");   // direct JSON file load
+const creds = require("./credentials/client_secret.json");   // direct JSON file load
 const googleClient = new OAuth2Client(creds.web.client_id);
 // ---------- MongoDB ----------
 const uri = process.env.MONGODB_URI;
