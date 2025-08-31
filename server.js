@@ -37,12 +37,13 @@ mongoose
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, trim: true, lowercase: true, index: true, sparse: true },
-    phone: { type: String, trim: true, index: true, sparse: true },
-    passwordHash: { type: String, required: true },
+    email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+    phone: { type: String, required: true, trim: true },
+    gender: { type: String, enum: ["male", "female", "other"], required: true },
+    passwordHash: { type: String }, // optional rakha hai
     createdAt: { type: Date, default: Date.now },
   },
-  { collection: "Users" }
+  { collection: "Users" }
 );
 
 const User = mongoose.model("User", userSchema);
