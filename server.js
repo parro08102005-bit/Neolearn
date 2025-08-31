@@ -60,7 +60,9 @@ app.post("/api/register", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body || {};
     if (!name || !password || (!email && !phone)) {
-      return res.status(400).json({ error: "Name, and Email/Phone, and Password required hai" });
+      return res
+        .status(400)
+        .json({ error: "Name, and Email/Phone, and Password required hai" });
     }
 
     const emailNorm = email ? String(email).toLowerCase().trim() : undefined;
@@ -70,7 +72,7 @@ app.post("/api/register", async (req, res) => {
     const existing = await User.findOne({
       $or: [
         ...(emailNorm ? [{ email: emailNorm }] : []),
-        ...(phoneNorm ? [{ phone: phoneNorm }] : [])
+        ...(phoneNorm ? [{ phone: phoneNorm }] : []),
       ],
     });
 
@@ -78,20 +80,21 @@ app.post("/api/register", async (req, res) => {
       return res.status(400).json({ error: "Email/Phone already registered" });
     }
 
+    // Password ko hash karo
     const passwordHash = await bcrypt.hash(password, 10);
 
     await User.create({
       name: String(name).trim(),
       email: emailNorm,
       phone: phoneNorm,
-      passwordHash
+      passwordHash,
     });
 
-    return res.json({ success: true, message: "Registration successful" });
+    return res.json({ success: true, message: "Registration successful ✅" });
   } catch (e) {
     console.error("register error:", e);
-    return res.status(500).json({ error: "Server error" });
-  }
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
 // Login (email OR phone + password)
