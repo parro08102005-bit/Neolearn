@@ -109,7 +109,11 @@ app.post("/api/login", async (req, res) => {
     const user = await User.findOne({
       $or: [{ email: idLower }, { phone: identifier }]
     });
+<<<<<<< HEAD
     console.log("User found in DB =>", user);
+=======
+     console.log("User found in DB =>", user);
+>>>>>>> 34f46e7 (Added forgot password API)
     if (!user) {
       return res.status(400).json({ error: "Invalid Email/Phone or Password" });
     }
