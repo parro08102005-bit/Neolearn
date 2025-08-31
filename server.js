@@ -1,11 +1,10 @@
-// server.js -- CommonJS (Node)
+// server.js
 require("dotenv").config();
 const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const fs = require("fs");
 const { OAuth2Client } = require("google-auth-library");
 
 const app = express();
@@ -24,8 +23,6 @@ if (!uri) {
   console.error("❌ MONGODB_URI missing.");
   process.exit(1);
 }
-
-console.log("✅ MONGODB_URI loaded");
 mongoose
   .connect(uri)
   .then(() => console.log("✅ MongoDB connected"))
@@ -34,11 +31,6 @@ mongoose
     process.exit(1);
   });
 
-// ---------- Test Route ----------
-//app.get("/", (req, res) => {
-  //res.send("🚀 Backend is running successfully!");
-//});
-
 // ---------- Schemas & Models ----------
 const userSchema = new mongoose.Schema(
   {
@@ -46,7 +38,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, trim: true, lowercase: true, index: true, sparse: true },
     phone: { type: String, trim: true, index: true, sparse: true },
     passwordHash: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
   },
   { collection: "Users" }
 );
@@ -60,9 +52,7 @@ app.post("/api/register", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body || {};
     if (!name || !password || (!email && !phone)) {
-      return res
-        .status(400)
-        .json({ error: "Name, and Email/Phone, and Password required hai" });
+      return res.status(400).json({ error: "Name, Email/Phone, and Password required hai" });
     }
 
     const emailNorm = email ? String(email).toLowerCase().trim() : undefined;
@@ -75,12 +65,10 @@ app.post("/api/register", async (req, res) => {
         ...(phoneNorm ? [{ phone: phoneNorm }] : []),
       ],
     });
-
     if (existing) {
       return res.status(400).json({ error: "Email/Phone already registered" });
     }
 
-    // Password ko hash karo
     const passwordHash = await bcrypt.hash(password, 10);
 
     await User.create({
@@ -93,16 +81,15 @@ app.post("/api/register", async (req, res) => {
     return res.json({ success: true, message: "Registration successful ✅" });
   } catch (e) {
     console.error("register error:", e);
-    return res.status(500).json({ error: "Server error" });
-  }
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
-// Login (email OR phone + password)
+// Login
 app.post("/api/login", async (req, res) => {
   try {
-    const identifier = (req.body.identifier || req.body.emailOrPhone || "").trim();
+    const identifier = (req.body.identifier || req.body.email || req.body.phone || "").trim();
     const { password } = req.body || {};
-    return res.status(400).json({ error: "Email/Phone aur Password required hai" })
 
     if (!identifier || !password) {
       return res.status(400).json({ error: "Email/Phone aur Password required hai" });
@@ -110,15 +97,13 @@ app.post("/api/login", async (req, res) => {
 
     const idLower = identifier.toLowerCase();
     const user = await User.findOne({
-      $or: [{ email: idLower }, { phone: identifier }]
+      $or: [{ email: idLower }, { phone: identifier }],
     });
-    console.log("User found in DB =>", user);
 
     if (!user) {
       return res.status(400).json({ error: "Invalid Email/Phone or Password" });
     }
-    console.log("Entered Password:", password);
-    console.log("Stored Hash:", user.passwordHash);
+
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       return res.status(400).json({ error: "Invalid Email/Phone or Password" });
@@ -127,47 +112,39 @@ app.post("/api/login", async (req, res) => {
     // Success
     return res.json({
       success: true,
-      user: { id: user._id, name: user.name }
+      user: { id: user._id, name: user.name },
     });
   } catch (e) {
     console.error("login error:", e);
     return res.status(500).json({ error: "Server error" });
   }
 });
-//  Forgot Password 
+
+// Forgot Password
 app.post("/api/forgot-password", async (req, res) => {
-  const { email, newPassword } = req.body;
-
-  if (!email || !newPassword) {
-    return res.status(400).json({ error: "Email aur new password required hai" });
-  }
-
   try {
-    const user = await User.findOne({ email });
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: "Email aur new password required hai" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // New password ko hash karo
-    const bcrypt = require("bcrypt");
     const hash = await bcrypt.hash(newPassword, 10);
-
     user.passwordHash = hash;
     await user.save();
 
-    res.json({ success: true, message: "Password reset successful ✅" });
+    return res.json({ success: true, message: "Password reset successful ✅" });
   } catch (err) {
     console.error("Forgot password error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// ---------- Small health check (optional) ----------
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
-});
-
-// ---------- Google Login (ID token verify) ----------
+// Google Login
 app.post("/api/google-login", async (req, res) => {
   try {
     const { token } = req.body || {};
@@ -177,17 +154,26 @@ app.post("/api/google-login", async (req, res) => {
 
     const ticket = await googleClient.verifyIdToken({
       idToken: token,
-      audience: creds.web.client_id, // same client id
+      audience: creds.web.client_id,
     });
 
-    const payload = ticket.getPayload(); // { email, name, sub, ... }
+    const payload = ticket.getPayload();
     const userInfo = {
       email: payload.email,
       name: payload.name,
       googleId: payload.sub,
     };
 
-    // (optional) Yahan DB me find-or-create kar sakte ho
+    // find-or-create user
+    let user = await User.findOne({ email: userInfo.email });
+    if (!user) {
+      user = await User.create({
+        name: userInfo.name,
+        email: userInfo.email,
+        passwordHash: await bcrypt.hash(payload.sub, 10), // demo hash
+      });
+    }
+
     return res.json({ success: true, user: userInfo });
   } catch (e) {
     console.error("Google login error:", e);
@@ -205,4 +191,4 @@ app.get("*", (req, res) => {
 
 // ---------- Start ----------
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log('🚀 Server listeningon, {PORT}'));
+app.listen(PORT, () => console.log('🚀 Server listening on ${PORT}'));
