@@ -131,6 +131,33 @@ app.post("/api/login", async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 });
+// ========== Forgot Password ==========
+app.post("/api/forgot-password", async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    return res.status(400).json({ error: "Email aur new password required hai" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // New password ko hash karo
+    const bcrypt = require("bcrypt");
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    user.passwordHash = hash;
+    await user.save();
+
+    res.json({ success: true, message: "Password reset successful ✅" });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // ---------- Small health check (optional) ----------
 app.get("/api/health", (_req, res) => {
