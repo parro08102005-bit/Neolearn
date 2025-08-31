@@ -17,8 +17,10 @@ app.use(express.json());
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ---------- MongoDB ----------
+console.log("DEBUG .env keys =>", Object.keys(process.env)); // ye line add karo
+console.log("DEBUG MONGODB_URI =>", process.env.MONGODB_URI);
+
 const uri = process.env.MONGODB_URI;
-console.log("DEBUG MONGODB_URI:", uri);  
 if (!uri) {
   console.error("❌ MONGODB_URI missing.");
   process.exit(1);
