@@ -18,6 +18,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ---------- MongoDB ----------
 const uri = process.env.MONGODB_URI;
+console.log("DEBUG MONGODB_URI:", uri);  
 if (!uri) {
   console.error("❌ MONGODB_URI missing.");
   process.exit(1);
