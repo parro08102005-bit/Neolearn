@@ -17,6 +17,7 @@ app.use(express.json());
 const creds = require("./credentials/client_secret.json");   // direct JSON file load
 const googleClient = new OAuth2Client(creds.web.client_id);
 // ---------- MongoDB ----------
+console.log("DEBUG: MONGODB_URI =>", process.env.MONGODB_URI);
 const uri = process.env.MONGODB_URI;
 if (!uri) {
   console.error("❌ MONGODB_URI missing.");
