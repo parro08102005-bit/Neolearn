@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const { OAuth2Client } = require("google-auth-library");
+const nodemailer = require("nodemailer"); // ✅ new
 
 const app = express();
 
@@ -38,12 +39,28 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     gender: { type: String, enum: ["male", "female", "other"], required: true },
     passwordHash: { type: String },
+    otp: { type: String }, // ✅ OTP field
+    otpExpiry: { type: Date }, // ✅ OTP expiry time
     createdAt: { type: Date, default: Date.now },
   },
   { collection: "Users" }
 );
 
 const User = mongoose.model("User", userSchema);
+
+// ---------- Utility: Generate OTP ----------
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// ---------- Email Transporter ----------
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER, // your gmail
+    pass: process.env.EMAIL_PASS, // app password
+  },
+});
 
 // ---------- Auth APIs ----------
 
@@ -98,7 +115,79 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Google Login
+// ---------- Forgot Password with OTP ----------
+
+// Step 1: Send OTP
+app.post("/api/send-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "⚠ Email required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "❌ User not found" });
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+    await user.save();
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "NeoLearn - Password Reset OTP",
+      text: 'Your OTP for password reset is ${otp}. It is valid for 5 minutes.',
+    });
+
+    return res.json({ success: true, message: "✅ OTP sent to email" });
+  } catch (err) {
+    console.error("send-otp error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Step 2: Verify OTP
+app.post("/api/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "❌ User not found" });
+
+    if (user.otp !== otp || Date.now() > user.otpExpiry) {
+      return res.status(400).json({ error: "❌ Invalid or expired OTP" });
+    }
+
+    return res.json({ success: true, message: "✅ OTP verified" });
+  } catch (err) {
+    console.error("verify-otp error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Step 3: Reset Password
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "❌ User not found" });
+
+    if (user.otp !== otp || Date.now() > user.otpExpiry) {
+      return res.status(400).json({ error: "❌ Invalid or expired OTP" });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = hash;
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+
+    return res.json({ success: true, message: "✅ Password reset successful" });
+  } catch (err) {
+    console.error("reset-password error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ---------- Google Login ----------
 app.post("/api/google-login", async (req, res) => {
   try {
     const { token } = req.body || {};
