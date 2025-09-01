@@ -157,7 +157,7 @@ app.post("/api/google-login", async (req, res) => {
 
     const ticket = await googleClient.verifyIdToken({
       idToken: token,
-      audience: creds.web.client_id,
+     audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
