@@ -17,9 +17,6 @@ app.use(express.json());
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ---------- MongoDB ----------
-console.log("DEBUG .env keys =>", Object.keys(process.env)); // ye line add karo
-console.log("DEBUG MONGODB_URI =>", process.env.MONGODB_URI);
-
 const uri = process.env.MONGODB_URI;
 if (!uri) {
   console.error("❌ MONGODB_URI missing.");
@@ -40,10 +37,10 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, trim: true, lowercase: true, unique: true },
     phone: { type: String, required: true, trim: true },
     gender: { type: String, enum: ["male", "female", "other"], required: true },
-    passwordHash: { type: String }, // optional rakha hai
+    passwordHash: { type: String },
     createdAt: { type: Date, default: Date.now },
   },
-  { collection: "Users" }
+  { collection: "Users" }
 );
 
 const User = mongoose.model("User", userSchema);
@@ -53,35 +50,27 @@ const User = mongoose.model("User", userSchema);
 // Register
 app.post("/api/register", async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body || {};
-    if (!name || !password || (!email && !phone)) {
-      return res.status(400).json({ error: "Name, Email/Phone, and Password required hai" });
+    const { name, email, phone, gender, password } = req.body || {};
+    if (!name || !email || !phone || !gender || !password) {
+      return res.status(400).json({ error: "⚠ All fields are required" });
     }
 
-    const emailNorm = email ? String(email).toLowerCase().trim() : undefined;
-    const phoneNorm = phone ? String(phone).trim() : undefined;
-
-    // Duplicate check
-    const existing = await User.findOne({
-      $or: [
-        ...(emailNorm ? [{ email: emailNorm }] : []),
-        ...(phoneNorm ? [{ phone: phoneNorm }] : []),
-      ],
-    });
+    const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(400).json({ error: "Email/Phone already registered" });
+      return res.status(400).json({ error: "❌ Email already registered" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     await User.create({
-      name: String(name).trim(),
-      email: emailNorm,
-      phone: phoneNorm,
+      name,
+      email,
+      phone,
+      gender,
       passwordHash,
     });
 
-    return res.json({ success: true, message: "Registration successful ✅" });
+    return res.json({ success: true, message: "✅ Registration successful! Please login." });
   } catch (e) {
     console.error("register error:", e);
     return res.status(500).json({ error: "Server error" });
@@ -91,59 +80,21 @@ app.post("/api/register", async (req, res) => {
 // Login
 app.post("/api/login", async (req, res) => {
   try {
-    const identifier = (req.body.identifier || req.body.email || req.body.phone || "").trim();
-    const { password } = req.body || {};
-
-    if (!identifier || !password) {
-      return res.status(400).json({ error: "Email/Phone aur Password required hai" });
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "⚠ Email and Password required" });
     }
 
-    const idLower = identifier.toLowerCase();
-    const user = await User.findOne({
-      $or: [{ email: idLower }, { phone: identifier }],
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: "Invalid Email/Phone or Password" });
-    }
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "❌ Invalid Email or Password" });
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return res.status(400).json({ error: "Invalid Email/Phone or Password" });
-    }
+    if (!ok) return res.status(400).json({ error: "❌ Invalid Email or Password" });
 
-    // Success
-    return res.json({
-      success: true,
-      user: { id: user._id, name: user.name },
-    });
+    return res.json({ success: true, user: { id: user._id, name: user.name } });
   } catch (e) {
     console.error("login error:", e);
     return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Forgot Password
-app.post("/api/forgot-password", async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
-    if (!email || !newPassword) {
-      return res.status(400).json({ error: "Email aur new password required hai" });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const hash = await bcrypt.hash(newPassword, 10);
-    user.passwordHash = hash;
-    await user.save();
-
-    return res.json({ success: true, message: "Password reset successful ✅" });
-  } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -151,13 +102,11 @@ app.post("/api/forgot-password", async (req, res) => {
 app.post("/api/google-login", async (req, res) => {
   try {
     const { token } = req.body || {};
-    if (!token) {
-      return res.status(400).json({ success: false, message: "Token required" });
-    }
+    if (!token) return res.status(400).json({ success: false, message: "Token required" });
 
     const ticket = await googleClient.verifyIdToken({
       idToken: token,
-     audience: process.env.GOOGLE_CLIENT_ID,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
@@ -173,7 +122,9 @@ app.post("/api/google-login", async (req, res) => {
       user = await User.create({
         name: userInfo.name,
         email: userInfo.email,
-        passwordHash: await bcrypt.hash(payload.sub, 10), // demo hash
+        phone: "NA",
+        gender: "other",
+        passwordHash: await bcrypt.hash(userInfo.googleId, 10), // fake hash
       });
     }
 
