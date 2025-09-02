@@ -128,14 +128,14 @@ app.post("/api/send-otp", async (req, res) => {
 
     const otp = generateOTP();
     user.otp = otp;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+    user.otpExpiry = Date.now() + 1 * 60 * 1000; // 5 minutes
     await user.save();
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: "NeoLearn - Password Reset OTP",
-      text: 'Your OTP for password reset is ${otp}. It is valid for 5 minutes.',
+      text: 'Your OTP for password reset is ${otp}. It is valid for 1 minutes.',
     });
 
     return res.json({ success: true, message: "✅ OTP sent to email" });
