@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true, unique: true },
     phone: { type: String, required: true, trim: false },
-    gender: { type: String, enum: ["male", "female", "other"], required: true },
+    gender: { type: String, enum: ["male", "female", "other"], required: false },
     passwordHash: { type: String },
     otp: { type: String }, // ✅ OTP field
     otpExpiry: { type: Date }, // ✅ OTP expiry time
