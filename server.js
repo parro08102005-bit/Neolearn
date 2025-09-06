@@ -127,6 +127,7 @@ app.post("/api/send-otp", async (req, res) => {
     if (!user) return res.status(404).json({ error: "❌ User not found" });
 
     const otp = generateOTP();
+    console.log("OTP for", email, "=", otp);
     user.otp = otp;
     user.otpExpiry = Date.now() + 1 * 60 * 1000; // 5 minutes
     await user.save();
